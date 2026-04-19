@@ -1,7 +1,16 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx create-next-app@latest . --typescript --tailwind --app --src-dir=false --import-alias=\"@/*\" --yes)"
+      "Bash(npx create-next-app@latest . --typescript --tailwind --app --src-dir=false --import-alias=\"@/*\" --yes)",
+      "Bash(npm install *)",
+      "Bash(npx tsc *)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(curl -s -X POST http://localhost:3000/api/tafsir -H 'Content-Type: application/json' -d '{\"question\":\"ما معنى البسملة؟\",\"surahNumber\":1,\"ayahs\":[],\"history\":[]}' --max-time 15)",
+      "Bash(curl -v -X POST http://localhost:3000/api/tafsir -H 'Content-Type: application/json' -d '{\"question\":\"اختبار\",\"surahNumber\":1,\"ayahs\":[],\"history\":[]}' --max-time 20)",
+      "Bash(node -e \"const a = require\\('@anthropic-ai/sdk'\\); console.log\\(Object.keys\\(a\\)\\)\")",
+      "Bash(node -e ' *)",
+      "Bash(curl -s -X POST http://localhost:3000/api/tafsir -H 'Content-Type: application/json' -d '{\"question\":\"ما معنى البسملة؟\",\"surahNumber\":1,\"ayahs\":[],\"history\":[]}' --max-time 20)",
+      "Bash(node -e \"const tw = require\\('tailwindcss/package.json'\\); console.log\\(tw.version\\)\")"
     ]
   }
 }
