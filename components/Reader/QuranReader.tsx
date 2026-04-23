@@ -55,7 +55,7 @@ export default function QuranReader({
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-6 pb-12">
+      <div className="max-w-2xl mx-auto px-3 sm:px-6 pb-12">
         <div className="h-4" />
         {showBasmalaHeader && <Bismillah />}
 

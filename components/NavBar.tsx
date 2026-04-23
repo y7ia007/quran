@@ -38,14 +38,14 @@ export default function NavBar() {
 
   return (
     <>
-      <header className="h-14 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center px-6 gap-4 sticky top-0 z-50">
+      <header className="h-14 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center px-4 gap-3 sticky top-0 z-50">
         {/* Logo */}
-        <Link href="/" className="text-[#1A7A6E] font-bold text-lg tracking-tight">
+        <Link href="/" className="text-[#1A7A6E] font-bold text-lg tracking-tight shrink-0">
           القرآن
         </Link>
 
-        {/* Home nav */}
-        <nav className="flex items-center gap-1 mx-auto">
+        {/* Home nav — hidden on mobile (bottom nav handles it) */}
+        <nav className="hidden lg:flex items-center gap-1 mx-auto">
           <Link
             href="/"
             aria-label="الرئيسية"
@@ -56,8 +56,11 @@ export default function NavBar() {
           </Link>
         </nav>
 
+        {/* Spacer on mobile */}
+        <div className="flex-1 lg:hidden" />
+
         {/* Right controls */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 shrink-0">
           {/* Search button */}
           <button
             onClick={() => setSearch(true)}

@@ -93,7 +93,7 @@ export default function AyahCard({
         {/* Toolbar — shown on hover or when highlighted */}
         <div
           className={`flex items-center gap-0.5 transition-opacity ${
-            highlighted ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+            highlighted ? 'opacity-100' : 'opacity-100 lg:opacity-0 lg:group-hover:opacity-100'
           }`}
         >
           {/* Play / Pause button */}
@@ -120,7 +120,7 @@ export default function AyahCard({
       </div>
 
       {/* Arabic text */}
-      <p className="font-quran text-2xl leading-[2.4] text-right text-gray-900 dark:text-gray-100 select-text">
+      <p className="font-quran text-xl sm:text-2xl leading-[2.4] text-right text-gray-900 dark:text-gray-100 select-text">
         {ayah.text}
       </p>
 

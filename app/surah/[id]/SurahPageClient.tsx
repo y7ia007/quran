@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { BookOpen, AlignJustify, MessageSquare } from 'lucide-react';
 import type { Ayah, Favorite, Surah, SurahDetail } from '@/lib/types';
 import { getFavorites, toggleFavorite } from '@/lib/favorites';
 import { getAudioUrl, RECITERS } from '@/lib/quranApi';
@@ -14,151 +15,165 @@ interface Props {
   initialAyah?: number;
 }
 
-const DEFAULT_RECITER = RECITERS[0].id; // مشاري العفاسي
+const DEFAULT_RECITER = RECITERS[0].id;
 
 export default function SurahPageClient({ surah, allSurahs, initialAyah }: Props) {
-  const [selectedAyah, setSelectedAyah] = useState<Ayah | null>(null);
-  const [playingAyahNumber, setPlayingAyahNumber] = useState<number | null>(null);
-  const [reciterId, setReciterId] = useState(DEFAULT_RECITER);
-  const [favorites, setFavorites] = useState<Favorite[]>([]);
-  const [doneAyahs, setDoneAyahs] = useState<Set<number>>(new Set());
+  const [selectedAyah, setSelectedAyah]     = useState<Ayah | null>(null);
+  const [playingAyahNumber, setPlaying]     = useState<number | null>(null);
+  const [reciterId, setReciterId]           = useState(DEFAULT_RECITER);
+  const [favorites, setFavorites]           = useState<Favorite[]>([]);
+  const [doneAyahs, setDoneAyahs]           = useState<Set<number>>(new Set());
+  const [sidebarOpen, setSidebarOpen]       = useState(false);
+  const [panelOpen, setPanelOpen]           = useState(false);
+  const [mobileTab, setMobileTab]           = useState<'reader' | 'sidebar' | 'panel'>('reader');
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Load saved reciter + favorites on mount
   useEffect(() => {
     setFavorites(getFavorites());
     const saved = localStorage.getItem('quran_reciter');
     if (saved) setReciterId(saved);
   }, []);
 
-  // Reset state when navigating to a different surah
   useEffect(() => {
     stopAudio();
     setSelectedAyah(null);
     setDoneAyahs(new Set());
+    setSidebarOpen(false);
+    setPanelOpen(false);
+    setMobileTab('reader');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [surah.number]);
 
-  // Auto-select & scroll to initialAyah (e.g. from juz navigation)
   useEffect(() => {
     if (!initialAyah) return;
     const target = surah.ayahs.find((a) => a.numberInSurah === initialAyah);
     if (!target) return;
     setSelectedAyah(target);
-    // Delay scroll until DOM renders
     const timer = setTimeout(() => {
-      const el = document.getElementById(`ayah-${initialAyah}`);
-      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      document.getElementById(`ayah-${initialAyah}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 300);
     return () => clearTimeout(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialAyah, surah.number]);
 
-  /** Hard-stop: pause + clear src so the browser releases the network request */
   function killAudio() {
     if (audioRef.current) {
       const a = audioRef.current;
-      a.onended = null;
-      a.pause();
-      a.src = '';   // forces the browser to abort buffering immediately
+      a.onended = null; a.pause(); a.src = '';
       audioRef.current = null;
     }
   }
+  function stopAudio() { killAudio(); setPlaying(null); }
 
-  function stopAudio() {
+  const playAyah = useCallback((ayah: Ayah) => {
+    if (playingAyahNumber === ayah.numberInSurah) { stopAudio(); return; }
     killAudio();
-    setPlayingAyahNumber(null);
-  }
-
-  const playAyah = useCallback(
-    (ayah: Ayah) => {
-      // Same ayah → toggle off
-      if (playingAyahNumber === ayah.numberInSurah) {
-        stopAudio();
-        return;
-      }
-
-      // Hard-stop whatever is currently playing
-      killAudio();
-
-      const reciter = RECITERS.find((r) => r.id === reciterId) ?? RECITERS[0];
-      const url = getAudioUrl(reciterId, ayah.number, reciter.bitrate);
-      const audio = new Audio(url);
-      audioRef.current = audio;
-
-      // Mark as playing BEFORE play() so UI updates instantly
-      setPlayingAyahNumber(ayah.numberInSurah);
-
-      audio.play().catch(() => setPlayingAyahNumber(null));
-
-      audio.onended = () => {
-        setPlayingAyahNumber(null);
-        // Mark this ayah as completed
-        setDoneAyahs((prev) => new Set(prev).add(ayah.numberInSurah));
-        window.dispatchEvent(
-          new CustomEvent('ayah-ended', { detail: { surahAyahNum: ayah.numberInSurah } })
-        );
-      };
-    },
+    const reciter = RECITERS.find((r) => r.id === reciterId) ?? RECITERS[0];
+    const audio = new Audio(getAudioUrl(reciterId, ayah.number, reciter.bitrate));
+    audioRef.current = audio;
+    setPlaying(ayah.numberInSurah);
+    audio.play().catch(() => setPlaying(null));
+    audio.onended = () => {
+      setPlaying(null);
+      setDoneAyahs((prev) => new Set(prev).add(ayah.numberInSurah));
+      window.dispatchEvent(new CustomEvent('ayah-ended', { detail: { surahAyahNum: ayah.numberInSurah } }));
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [reciterId, playingAyahNumber]
-  );
+  }, [reciterId, playingAyahNumber]);
 
-  // Clicking an ayah = select only (no auto-play)
   const handleSelect = useCallback((ayah: Ayah) => {
-    setSelectedAyah((prev) =>
-      prev?.numberInSurah === ayah.numberInSurah ? null : ayah
-    );
+    setSelectedAyah((prev) => prev?.numberInSurah === ayah.numberInSurah ? null : ayah);
+    // Auto-open tafsir panel on mobile when an ayah is selected
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      setMobileTab('panel');
+    }
   }, []);
 
-  const handleToggleFavorite = useCallback(
-    (ayah: Ayah) => {
-      const fav: Favorite = {
-        surahNumber: surah.number,
-        surahName: surah.name,
-        numberInSurah: ayah.numberInSurah,
-        globalNumber: ayah.number,
-        text: ayah.text,
-      };
-      setFavorites(toggleFavorite(fav));
-    },
-    [surah]
-  );
+  const handleToggleFavorite = useCallback((ayah: Ayah) => {
+    setFavorites(toggleFavorite({
+      surahNumber: surah.number, surahName: surah.name,
+      numberInSurah: ayah.numberInSurah, globalNumber: ayah.number, text: ayah.text,
+    }));
+  }, [surah]);
 
   const handleReciterChange = useCallback((id: string) => {
     setReciterId(id);
     localStorage.setItem('quran_reciter', id);
-    stopAudio(); // stop current playback when switching reciter
+    stopAudio();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const currentSurah = allSurahs.find((s) => s.number === surah.number) ?? allSurahs[0];
 
+  const sharedReaderProps = {
+    surah, selectedAyah, playingAyahNumber,
+    doneAyahs, favorites,
+    onSelect: handleSelect, onPlay: playAyah, onToggleFavorite: handleToggleFavorite,
+  };
+  const sharedPanelProps = {
+    surah, selectedAyah, playingAyahNumber, reciterId,
+    onPlay: playAyah, onStop: stopAudio, onReciterChange: handleReciterChange,
+  };
+
   return (
-    <div
-      className="grid h-[calc(100vh-3.5rem)]"
-      style={{ gridTemplateColumns: '280px 1fr 340px' }}
-    >
-      <Sidebar surahs={allSurahs} currentSurah={currentSurah} />
-      <QuranReader
-        surah={surah}
-        selectedAyah={selectedAyah}
-        playingAyahNumber={playingAyahNumber}
-        doneAyahs={doneAyahs}
-        favorites={favorites}
-        onSelect={handleSelect}
-        onPlay={playAyah}
-        onToggleFavorite={handleToggleFavorite}
-      />
-      <RightPanel
-        surah={surah}
-        selectedAyah={selectedAyah}
-        playingAyahNumber={playingAyahNumber}
-        reciterId={reciterId}
-        onPlay={playAyah}
-        onStop={stopAudio}
-        onReciterChange={handleReciterChange}
-      />
+    <div className="relative h-[calc(100vh-3.5rem)] overflow-hidden">
+
+      {/* ── Desktop: 3-column grid ─────────────────── */}
+      <div
+        className="hidden lg:grid h-full"
+        style={{ gridTemplateColumns: '280px 1fr 340px' }}
+      >
+        <Sidebar surahs={allSurahs} currentSurah={currentSurah} />
+        <QuranReader {...sharedReaderProps} />
+        <RightPanel {...sharedPanelProps} />
+      </div>
+
+      {/* ── Mobile: tabbed layout ──────────────────── */}
+      <div className="lg:hidden h-full flex flex-col pb-16">
+        <div className={`flex-1 overflow-hidden ${mobileTab === 'reader' ? 'block' : 'hidden'}`}>
+          <QuranReader {...sharedReaderProps} />
+        </div>
+        <div className={`flex-1 overflow-hidden ${mobileTab === 'sidebar' ? 'block' : 'hidden'}`}>
+          <Sidebar surahs={allSurahs} currentSurah={currentSurah} />
+        </div>
+        <div className={`flex-1 overflow-hidden ${mobileTab === 'panel' ? 'block' : 'hidden'}`}>
+          <RightPanel {...sharedPanelProps} />
+        </div>
+      </div>
+
+      {/* ── Mobile: bottom navigation ──────────────── */}
+      <nav className="lg:hidden absolute bottom-0 inset-x-0 z-50 h-16 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-t border-gray-200 dark:border-gray-800 flex items-center">
+        {/* Left: Tafsir/Recite */}
+        <button
+          onClick={() => setMobileTab('panel')}
+          className={`flex-1 flex flex-col items-center gap-0.5 py-2 transition-colors ${mobileTab === 'panel' ? 'text-[#1A7A6E]' : 'text-gray-400 dark:text-gray-500'}`}
+        >
+          <MessageSquare size={20} />
+          <span className="text-[11px] font-medium">تفسير</span>
+        </button>
+
+        {/* Center: Reader */}
+        <button
+          onClick={() => setMobileTab('reader')}
+          className={`flex-1 flex flex-col items-center gap-0.5 py-2 transition-colors ${mobileTab === 'reader' ? 'text-[#1A7A6E]' : 'text-gray-400 dark:text-gray-500'}`}
+        >
+          <BookOpen size={20} />
+          <span className="text-[11px] font-medium">القرآن</span>
+          {mobileTab === 'reader' && (
+            <span className="absolute bottom-0 w-8 h-0.5 bg-[#1A7A6E] rounded-full" />
+          )}
+        </button>
+
+        {/* Right: Surah list */}
+        <button
+          onClick={() => setMobileTab('sidebar')}
+          className={`flex-1 flex flex-col items-center gap-0.5 py-2 transition-colors ${mobileTab === 'sidebar' ? 'text-[#1A7A6E]' : 'text-gray-400 dark:text-gray-500'}`}
+        >
+          <AlignJustify size={20} />
+          <span className="text-[11px] font-medium">السور</span>
+        </button>
+      </nav>
+
     </div>
   );
 }
