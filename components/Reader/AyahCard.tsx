@@ -7,6 +7,7 @@ import { Copy, Bookmark, BookmarkCheck, Check, Play, Pause, Volume2 } from 'luci
 interface Props {
   ayah: Ayah;
   surahNumber: number;
+  fontSize: number;
   isSelected: boolean;
   isPlaying: boolean;
   isDone: boolean;
@@ -19,6 +20,7 @@ interface Props {
 export default function AyahCard({
   ayah,
   surahNumber,
+  fontSize,
   isSelected,
   isPlaying,
   isDone,
@@ -96,21 +98,18 @@ export default function AyahCard({
             highlighted ? 'opacity-100' : 'opacity-100 lg:opacity-0 lg:group-hover:opacity-100'
           }`}
         >
-          {/* Play / Pause button */}
           <ToolBtn onClick={handlePlay} label={isPlaying ? 'إيقاف' : 'تشغيل'}>
             {isPlaying
               ? <Pause size={13} className="text-[#1A7A6E]" />
               : <Play size={13} />}
           </ToolBtn>
 
-          {/* Copy */}
           <ToolBtn onClick={handleCopy} label="نسخ">
             {copied
               ? <Check size={13} className="text-[#1A7A6E]" />
               : <Copy size={13} />}
           </ToolBtn>
 
-          {/* Bookmark */}
           <ToolBtn onClick={handleFavorite} label="إشارة">
             {isFavorite
               ? <BookmarkCheck size={13} className="text-[#1A7A6E]" />
@@ -119,8 +118,11 @@ export default function AyahCard({
         </div>
       </div>
 
-      {/* Arabic text */}
-      <p className="font-quran text-xl sm:text-2xl leading-[2.4] text-right text-gray-900 dark:text-gray-100 select-text">
+      {/* Arabic text — size driven by fontSize prop */}
+      <p
+        className="font-quran leading-[2.4] text-right text-gray-900 dark:text-gray-100 select-text transition-[font-size] duration-200"
+        style={{ fontSize: `${fontSize}px` }}
+      >
         {ayah.text}
       </p>
 
